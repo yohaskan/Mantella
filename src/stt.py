@@ -15,7 +15,7 @@ class Transcriber:
         #YS init microphone mute key 
         self.mic_muted = False
         self.lock = threading.Lock() # ensure that the microphone is not muted or unmuted by multiple threads simultaneously
-        keyboard.add_hotkey('f8', self.toggle_mic)
+        keyboard.add_hotkey('F8', self.toggle_mic) # choice of function key (F1 to F12) because keyboards other than Qwerty are not managed by the Keyboard lib
         #YS End
         self.loglevel = 27
         self.game_state_manager = game_state_manager
