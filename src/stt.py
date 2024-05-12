@@ -6,17 +6,17 @@ import requests
 import json
 import io
 import time
+#YS import microphone mute key 
 import keyboard
 import threading
 
 class Transcriber:
     def __init__(self, game_state_manager, config, api_key: str):
-        #Yann
+        #YS init microphone mute key 
         self.mic_muted = False
-        self.lock = threading.Lock()  
-        keyboard.add_hotkey('m', self.toggle_mic)
-        #keyboard.add_abbreviation('m', '', self.toggle_mic)
-        #yannFin
+        self.lock = threading.Lock() # ensure that the microphone is not muted or unmuted by multiple threads simultaneously
+        keyboard.add_hotkey('f8', self.toggle_mic)
+        #YS End
         self.loglevel = 27
         self.game_state_manager = game_state_manager
         self.game_path = config.game_path
@@ -67,23 +67,25 @@ class Transcriber:
                     self.transcribe_model = WhisperModel(self.model, device=self.process_device, compute_type="float32")
 
 
-    
+    #YS Toggle microphone mute key 
     def toggle_mic(self, e=None):
-        with self.lock:  # ajoutez cette ligne
+        with self.lock:  
             self.mic_muted = not self.mic_muted
             if self.mic_muted:
                 print("Microphone muted")
             else:
                 print("Microphone unmuted")
-
+    #YS End            
+    #YS Toggle microphone mute key 
     def get_player_response(self, say_goodbye, prompt: str):
-        if self.mic_enabled == '1' and not self.mic_muted:  # vérifiez si le microphone est coupé
-            # écoutez la réponse
+        if self.mic_enabled == '1' and not self.mic_muted:  #check if the microphone is muted
+            # listener
             transcribed_text = self.recognize_input(prompt)
-            if self.mic_muted:  # vérifiez à nouveau si le microphone est coupé
+            if self.mic_muted:  # check again if the microphone is muted
                 transcribed_text = self._get_text_input()
         else:
             transcribed_text = self._get_text_input()
+        #YS End
 
         if (self.debug_mode == '1') & (self.debug_use_default_player_response == '1'):
             transcribed_text = self.default_player_response
