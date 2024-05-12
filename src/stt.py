@@ -165,7 +165,9 @@ class Transcriber:
 
     def _get_text_input(self):
         # text input through console
-        if (self.debug_mode == '1') & (self.debug_use_default_player_response == '0'):
+        #YS desactivation de la condition 
+        #if (self.debug_mode == '1') & (self.debug_use_default_player_response == '0'):
+        if (self.debug_use_default_player_response == '0'): #YS End
             text = input('\nWrite player\'s response: ')
             logging.log(self.loglevel, f'Player wrote "{text}"')
         # await text input from the game
