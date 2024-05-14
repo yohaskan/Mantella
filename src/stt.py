@@ -9,6 +9,7 @@ import time
 #YS import microphone mute key 
 import keyboard
 import threading
+import pyaudio
 
 class Transcriber:
     def __init__(self, game_state_manager, config, api_key: str):
@@ -16,6 +17,13 @@ class Transcriber:
         self.mic_muted = False
         self.lock = threading.Lock() # ensure that the microphone is not muted or unmuted by multiple threads simultaneously
         keyboard.add_hotkey('F8', self.toggle_mic) # choice of function key (F1 to F12) because keyboards other than Qwerty are not managed by the Keyboard lib
+
+        self.p = pyaudio.PyAudio()
+        self.stream = self.p.open(format=pyaudio.paInt16,
+                                   channels=1,
+                                   rate=16000,
+                                   input=True,
+                                   frames_per_buffer=1024)
         #YS End
         self.loglevel = 27
         self.game_state_manager = game_state_manager
@@ -65,27 +73,36 @@ class Transcriber:
                     self.transcribe_model = WhisperModel(self.model, device=self.process_device)
                 else:
                     self.transcribe_model = WhisperModel(self.model, device=self.process_device, compute_type="float32")
-
+    #YS Listener Mic 
+    def listen(self):
+        while True:
+            if not self.mic_muted:
+                data = self.stream.read(1024)
+                # process data here
+            else:
+                time.sleep(0.1)  # sleep if mic is muted
 
     #YS Toggle microphone mute key 
     def toggle_mic(self, e=None):
         with self.lock:  
             self.mic_muted = not self.mic_muted
             if self.mic_muted:
-                print("Microphone muted")
+                self.game_state_manager.write_game_info('_mantella_status', 'Microphone muted')
+                logging.log(self.loglevel, 'Microphone muted')
             else:
-                print("Microphone unmuted")
+                self.game_state_manager.write_game_info('_mantella_status', 'Microphone unmuted')
+                logging.log(self.loglevel, 'Microphone unmuted')
     #YS End            
     #YS Toggle microphone mute key 
     def get_player_response(self, say_goodbye, prompt: str):
-        if self.mic_enabled == '1' and not self.mic_muted:  #check if the microphone is muted
+        while self.mic_muted:  # Wait if mic is muted
+            time.sleep(0.1)
+        if self.mic_enabled == '1' and not self.mic_muted:  # check if the microphone is activated and not muted
             # listener
-            transcribed_text = self.recognize_input(prompt)
-            if self.mic_muted:  # check again if the microphone is muted
-                transcribed_text = self._get_text_input()
+            transcribed_text = self.recognize_input(prompt) if not self.mic_muted else ""
+
         else:
             transcribed_text = self._get_text_input()
-        #YS End
 
         if (self.debug_mode == '1') & (self.debug_use_default_player_response == '1'):
             transcribed_text = self.default_player_response
@@ -97,6 +114,7 @@ class Transcriber:
                 say_goodbye = True
         
         return transcribed_text, say_goodbye
+
 
     def recognize_input(self, prompt: str):
         """
@@ -151,6 +169,10 @@ class Transcriber:
                     return response_data['text'].strip()
 
         with self.microphone as source:
+            #YS waiting if mic is muted
+            while self.mic_muted: 
+                time.sleep(0.1)
+            #YS End
             try:
                 audio = self.recognizer.listen(source, timeout=self.listen_timeout)
             except sr.WaitTimeoutError:
@@ -165,7 +187,7 @@ class Transcriber:
 
     def _get_text_input(self):
         # text input through console
-        #YS desactivation de la condition 
+        #YS Disabling the debug mode only condition 
         #if (self.debug_mode == '1') & (self.debug_use_default_player_response == '0'):
         if (self.debug_use_default_player_response == '0'): #YS End
             text = input('\nWrite player\'s response: ')
